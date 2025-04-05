@@ -68,7 +68,7 @@ class BeeAlgorithm(GeneticAlgorithm):
 np.random.seed(123)
 transmitters = np.random.rand(100, 2) * 50
 radius = 10
-num_bees = 20
+num_bees = 30
 print(transmitters)
 
 bee_algo = BeeAlgorithm(transmitters=transmitters,
