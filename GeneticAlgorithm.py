@@ -16,12 +16,12 @@ class GeneticAlgorithm:
     def calculate_score(self, bitmask):
         active_indices = np.where(bitmask)[0]
         if len(active_indices) == 0:
-            return float('inf')
+            return 0
         
         active_transmitters = self.transmitters[active_indices]
 
         if not self.is_connected(active_transmitters):
-            return float('inf')
+            return 0
 
         area = self.approximate_coverage_area(active_transmitters)
         num_active = len(active_indices)
