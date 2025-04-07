@@ -4,14 +4,12 @@ from Visualizer import plot_transmitters
 
 class Crossing(GeneticAlgorithm):
 
-    def __init__(self, transmitters, radius, n_plane_min, n_plane_max, n_population, n_generations, n_crossover, n_mutation):
-        self.n_plane_min = n_plane_min
-        self.n_plane_max = n_plane_max
+    def __init__(self, transmitters, radius, n_population, n_generations, n_crossover, n_mutation):
         self.n_population = n_population
         self.n_generations = n_generations
         self.n_crossover = n_crossover
         self.n_mutation = n_mutation
-        super().__init__(transmitters, radius,c1=1, c2=100)
+        super().__init__(transmitters, radius,c1=1, c2=1)
 
 
     def select(self, population, scores, n_tournament_size=5):
@@ -46,32 +44,11 @@ class Crossing(GeneticAlgorithm):
                 child[i] = not bit
 
 
-    def is_covered(self, x, y, transmitter):
-        return np.sqrt((transmitter[0] - x)**2 + (transmitter[1] - y)**2) < self.radius
-
-
-    def calculate_area_coverage(self, active_transmitters):
-        grid_x, grid_y = np.meshgrid(
-            np.arange(self.n_plane_min, self.n_plane_max),
-            np.arange(self.n_plane_min, self.n_plane_max)
-        )
-        grid = np.stack([grid_x, grid_y], axis=-1).reshape(-1, 2)
-
-        covered = np.zeros(len(grid), dtype=bool)
-
-        for tx in active_transmitters:
-            dist = np.linalg.norm(grid - tx, axis=1)
-            covered |= dist < self.radius
-
-        return (len(grid) - np.count_nonzero(covered)) / len(grid)
-
-
-
     def calculate_score(self, bitmask):
         active_indices = np.where(bitmask)[0]
         active_transmitters = self.transmitters[active_indices]
 
-        return -self.c1 * len(active_transmitters) / self.n_population + self.c2 * self.calculate_area_coverage(active_transmitters)
+        return self.c1 * len(active_transmitters) - self.c2 * self.approximate_coverage_area(active_transmitters)
 
 
     def run_iteration(self):
@@ -111,21 +88,18 @@ class Crossing(GeneticAlgorithm):
         print(f"Best score {best_score:.2f}")
         return best_member, best_score
 
-#np.random.seed(123)
+np.random.seed(123)
 
-n_plane_min = 0 
-n_plane_max = 100
-
-n_population = 50 # Population size, should be even number
-n_transmitters = 50 # Number of transmitters
+n_population = 20 # Population size, should be even number
+n_transmitters = 100 # Number of transmitters
 n_generations = 20 # Number of generations
 n_crossover = 1.0 # A chance for crossover
-n_mutation = 0.2 # A chance for mutation
+n_mutation = 0.05 # A chance for mutation
 
-transmitters = np.random.randint(low=n_plane_min, high=n_plane_max, size=(n_transmitters, 2))
+transmitters = np.random.rand(n_transmitters, 2) * 50
 radius = 10 #np.random.randint(1, 10)
 
-crossing = Crossing(transmitters, radius, n_plane_min, n_plane_max, n_population, n_generations, n_crossover, n_mutation)
+crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
 
 mask = np.ones(n_transmitters, dtype=bool)
 

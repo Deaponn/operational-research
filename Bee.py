@@ -66,9 +66,9 @@ class BeeAlgorithm(GeneticAlgorithm):
 
 
 np.random.seed(123)
-transmitters = np.random.rand(100, 2) * 50
+transmitters = np.random.rand(50, 2) * 100
 radius = 10
-num_bees = 30
+num_bees = 1000
 print(transmitters)
 
 bee_algo = BeeAlgorithm(transmitters=transmitters,
@@ -78,7 +78,7 @@ plot_transmitters(transmitters, initial_mask, radius,
                   title="Initial Configuration", save_path="starting.png")
 
 
-for _ in range(1000):
+for _ in range(20):
     bee_algo.run_iteration()
 
 best_mask, best_score = bee_algo.get_best_solution()
