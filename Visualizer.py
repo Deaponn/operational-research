@@ -12,6 +12,7 @@ class Visualizer:
         self.max_score = max_score
 
         self.fig, self.ax = plt.subplots()
+        self.ax.set_aspect('equal', 'box')
 
         self.writer = HTMLWriter(fps=0.5)
         self.writer.setup(self.fig, 'visualization.html', dpi=100)
@@ -19,26 +20,32 @@ class Visualizer:
         self.fig.suptitle(f"Current/Max score: N/A / {self.max_score}")
         dots, circles = self._draw_transmitters(
             self.transmitters[:, 0], self.transmitters[:, 1], "grey")
+        self.writer.grab_frame()
+        self._erase(dots, circles)
 
     def add_frame(self, active_transmitters, score):
         self.fig.suptitle(f"Current/Max score: {score} / {self.max_score}")
-        dots, circles = self._draw_transmitters(
-            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "b")
+        active_dots, active_circles = self._draw_transmitters(
+            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
+        inactive_dots, inactive_circles = self._draw_transmitters(
+            self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
         self.writer.grab_frame()
-        self._erase(dots, circles)
+        self._erase(active_dots, active_circles)
+        self._erase(inactive_dots, inactive_circles)
 
     def save_animation(self):
         self.writer.finish()
 
     def _draw_transmitters(self, xs, ys, color):
-        dots = self.ax.plot(xs, ys, "o", color=color, markersize=10)
+        dots = self.ax.plot(xs, ys, "o", color=color, markersize=4)
 
         circles = []
         for x, y in zip(xs, ys):
-            circle = patches.Circle(
-                (x, y), self.radius, color=color, fill=False, linewidth=4)
-            self.ax.add_patch(circle)
-            circles.append(circle)
+            circle1 = patches.Circle(
+                (x, y), self.radius, color=color, alpha=0.4
+            )
+            self.ax.add_patch(circle1)
+            circles.append(circle1)
 
         return dots, circles
 
