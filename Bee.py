@@ -1,6 +1,6 @@
 from GeneticAlgorithm import GeneticAlgorithm
 import numpy as np
-from Visualizer import plot_transmitters
+from Visualizer import Visualizer, plot_transmitters
 
 
 class BeeAlgorithm(GeneticAlgorithm):
@@ -26,7 +26,7 @@ class BeeAlgorithm(GeneticAlgorithm):
         probs = self.scores / fitness_sum
         return np.random.choice(range(self.num_bees), p=probs)
 
-    def run_iteration(self):
+    def run_iteration(self, vis):
 
         for i in range(self.num_bees):
 
@@ -58,6 +58,9 @@ class BeeAlgorithm(GeneticAlgorithm):
                 self.scores[i] = self.calculate_score(self.population[i])
                 self.trials[i] = 0
         best_idx = np.argmax(self.scores)
+
+        vis.add_frame(self.population[best_idx], self.scores[best_idx])
+
         print(f"Current Best Score: {self.scores[best_idx]:.2f}")
 
     def get_best_solution(self):
@@ -71,6 +74,8 @@ radius = 10
 num_bees = 30
 print(transmitters)
 
+vis = Visualizer(transmitters, radius, 0)
+
 bee_algo = BeeAlgorithm(transmitters=transmitters,
                         radius=radius, num_bees=num_bees)
 initial_mask = np.ones(len(transmitters), dtype=bool)
@@ -79,11 +84,13 @@ plot_transmitters(transmitters, initial_mask, radius,
 
 
 for _ in range(1000):
-    bee_algo.run_iteration()
+    bee_algo.run_iteration(vis)
 
 best_mask, best_score = bee_algo.get_best_solution()
 plot_transmitters(transmitters, best_mask, radius,
                   title=f"Final Solution (Score: {best_score:.2f})",
                   save_path="final.png")
+
+vis.save_animation()
 
 print("Best:", best_mask, "Score:", best_score)
