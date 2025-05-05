@@ -1,15 +1,22 @@
 import numpy as np
 from GeneticAlgorithm import GeneticAlgorithm
-from Visualizer import plot_transmitters
+from Visualizer import Visualizer, plot_transmitters
 
 class Crossing(GeneticAlgorithm):
 
-    def __init__(self, transmitters, radius, n_population, n_generations, n_crossover, n_mutation):
+    def __init__(self, transmitters, radius, n_population, n_generations, n_crossover, n_mutation, c1 =1.0, c2 =1.0):
         self.n_population = n_population
         self.n_generations = n_generations
         self.n_crossover = n_crossover
         self.n_mutation = n_mutation
-        super().__init__(transmitters, radius,c1=1, c2=1)
+
+        super().__init__(transmitters, radius,c1=c1, c2=c2)
+
+
+    def calculate_area_coverage(self, transmitters, radius):
+        x_min, y_min = np.min(transmitters, axis=0) - radius
+        x_max, y_max = np.max(transmitters, axis=0) + radius
+        return (x_max - x_min) * (y_max - y_min)
 
 
     def select(self, population, scores, n_tournament_size=5):
@@ -43,16 +50,18 @@ class Crossing(GeneticAlgorithm):
             if np.random.rand() < self.n_mutation:
                 child[i] = not bit
 
-
+    
     def calculate_score(self, bitmask):
         active_indices = np.where(bitmask)[0]
         active_transmitters = self.transmitters[active_indices]
+        
+        #print(self.c1 * (len(active_transmitters) / len(self.transmitters)), self.c2 * (self.approximate_coverage_area(active_transmitters) / self.approximate_coverage_area(transmitters)))
 
-        return self.c1 * len(active_transmitters) - self.c2 * self.approximate_coverage_area(active_transmitters)
+        return self.c1 * (len(active_transmitters) / len(self.transmitters)) - self.c2 * (self.approximate_coverage_area(active_transmitters) / self.approximate_coverage_area(self.transmitters))
+    
 
-
-    def run_iteration(self):
-        population = self.generate_population(n_population)
+    def run_iteration(self, vis):
+        population = self.generate_population(self.n_population)
         
         # Random score
         random_member = np.random.randint(0, self.n_population)
@@ -71,6 +80,7 @@ class Crossing(GeneticAlgorithm):
                     best_score = score
                     best_member = population[i]
                     print(f"New best score {score:.2f}")
+                    vis.add_frame(best_member, best_score)
 
             # Parents selection
             parents = [self.select(population, scores) for _ in range(self.n_population)]
@@ -88,6 +98,7 @@ class Crossing(GeneticAlgorithm):
         print(f"Best score {best_score:.2f}")
         return best_member, best_score
 
+'''
 np.random.seed(123)
 
 n_population = 20 # Population size, should be even number
@@ -96,17 +107,22 @@ n_generations = 20 # Number of generations
 n_crossover = 1.0 # A chance for crossover
 n_mutation = 0.05 # A chance for mutation
 
-transmitters = np.random.rand(n_transmitters, 2) * 50
+transmitters = np.random.rand(n_transmitters, 2) * 100
 radius = 10 #np.random.randint(1, 10)
 
 crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
 
 mask = np.ones(n_transmitters, dtype=bool)
 
-plot_transmitters(transmitters, mask, radius, title="Initial problem", save_path="crossing_initial.png")
+plot_transmitters(transmitters, mask, radius, title="Initial problem", save_path="out/crossing_initial.png")
 
-best_member, best_score = crossing.run_iteration()
+vis = Visualizer(transmitters, radius, 0)
 
-plot_transmitters(transmitters, best_member, radius, title="Solution", save_path="crossing_solution.png")
+best_member, best_score = crossing.run_iteration(vis)
+
+vis.save_animation()
+
+plot_transmitters(transmitters, best_member, radius, title="Solution", save_path="out/crossing_solution.png")
+'''
 
 
