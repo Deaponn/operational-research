@@ -20,8 +20,9 @@ class Visualizer:
         self.fig.suptitle(f"Current/Max score: N/A / {self.max_score}")
         dots, circles = self._draw_transmitters(
             self.transmitters[:, 0], self.transmitters[:, 1], "grey")
+        lines = self._draw_connections()
         self.writer.grab_frame()
-        self._erase(dots, circles)
+        self._erase([dots, circles, lines])
 
     def add_frame(self, active_transmitters, score):
         self.fig.suptitle(f"Current/Max score: {score} / {self.max_score}")
@@ -29,9 +30,9 @@ class Visualizer:
             self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
         active_dots, active_circles = self._draw_transmitters(
             self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
+        lines = self._draw_connections(active_transmitters)
         self.writer.grab_frame()
-        self._erase(active_dots, active_circles)
-        self._erase(inactive_dots, inactive_circles)
+        self._erase([active_dots, active_circles, inactive_dots, inactive_circles, lines])
 
     def save_animation(self):
         self.writer.finish()
@@ -41,20 +42,38 @@ class Visualizer:
 
         circles = []
         for x, y in zip(xs, ys):
-            circle1 = patches.Circle(
+            circle = patches.Circle(
                 (x, y), self.radius, color=color, alpha=0.4
             )
-            self.ax.add_patch(circle1)
-            circles.append(circle1)
+            self.ax.add_patch(circle)
+            circles.append(circle)
 
         return dots, circles
 
-    def _erase(self, dots, circles):
-        for x in dots:
-            x.remove()
-        for x in circles:
-            x.remove()
+    def _draw_connections(self, active_transmitters=None):
+        active_color = "blue"
+        inactive_color = "red"
+        if active_transmitters is None:
+            active_transmitters = [True] * len(self.transmitters)
+            active_color = "gray"
 
+        lines = []
+        for i in range(len(self.transmitters)):
+            for j in range(len(self.transmitters)):
+                if i < j:
+                    dist = np.linalg.norm(self.transmitters[i] - self.transmitters[j])
+                    if dist <= 2 * self.radius:
+                        xi, yi = self.transmitters[i]
+                        xj, yj = self.transmitters[j]
+                        color = active_color if active_transmitters[i] and active_transmitters[j] else inactive_color
+                        lines.append(self.ax.plot([xi, xj], [yi, yj], color=color,
+                                linewidth=1, alpha=0.4)[0])
+        return lines
+
+    def _erase(self, iterable_of_iterables):
+        for iterable in iterable_of_iterables:
+            for x in iterable:
+                x.remove()
 
 def plot_transmitters(transmitters, bitmask, radius, title="Transmitters", save_path=None):
     fig, ax = plt.subplots(figsize=(8, 8))
