@@ -98,7 +98,7 @@ class Crossing(GeneticAlgorithm):
         print(f"Best score {best_score:.2f}")
         return best_member, best_score
 
-'''
+
 np.random.seed(123)
 
 n_population = 20 # Population size, should be even number
@@ -114,15 +114,15 @@ crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossov
 
 mask = np.ones(n_transmitters, dtype=bool)
 
-plot_transmitters(transmitters, mask, radius, title="Initial problem", save_path="out/crossing_initial.png")
+plot_transmitters(transmitters, mask, radius, title="Initial problem", save_path="crossing_initial.png")
 
-vis = Visualizer(transmitters, radius, 0)
+vis = Visualizer(transmitters, radius, 0, "crossing")
 
 best_member, best_score = crossing.run_iteration(vis)
 
 vis.save_animation()
 
-plot_transmitters(transmitters, best_member, radius, title="Solution", save_path="out/crossing_solution.png")
-'''
+plot_transmitters(transmitters, best_member, radius, title="Solution", save_path="crossing_solution.png")
+
 
 

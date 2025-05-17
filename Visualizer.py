@@ -6,7 +6,7 @@ from matplotlib.patches import Circle
 
 
 class Visualizer:
-    def __init__(self, transmitters, radius, max_score):
+    def __init__(self, transmitters, radius, max_score, alg_type):
         self.transmitters = transmitters
         self.radius = radius
         self.max_score = max_score
@@ -15,7 +15,7 @@ class Visualizer:
         self.ax.set_aspect('equal', 'box')
 
         self.writer = HTMLWriter(fps=0.5)
-        self.writer.setup(self.fig, 'visualization.html', dpi=100)
+        self.writer.setup(self.fig, f'visualization_{alg_type}.html', dpi=100)
 
         self.fig.suptitle(f"Current/Max score: N/A / {self.max_score}")
         dots, circles = self._draw_transmitters(
@@ -25,10 +25,10 @@ class Visualizer:
 
     def add_frame(self, active_transmitters, score):
         self.fig.suptitle(f"Current/Max score: {score} / {self.max_score}")
-        active_dots, active_circles = self._draw_transmitters(
-            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
         inactive_dots, inactive_circles = self._draw_transmitters(
             self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
+        active_dots, active_circles = self._draw_transmitters(
+            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
         self.writer.grab_frame()
         self._erase(active_dots, active_circles)
         self._erase(inactive_dots, inactive_circles)
