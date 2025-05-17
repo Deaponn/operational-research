@@ -1,6 +1,6 @@
 from GeneticAlgorithm import GeneticAlgorithm
 import numpy as np
-from Visualizer import Visualizer, plot_transmitters
+from Visualizer import Visualizer
 
 
 class BeeAlgorithm(GeneticAlgorithm):
@@ -68,28 +68,3 @@ class BeeAlgorithm(GeneticAlgorithm):
         if self.scores[best_idx] > self.best_score:
             self.best_score = self.scores[best_idx]
             self.best_population = np.array(self.population[best_idx])
-
-
-np.random.seed(123)
-transmitters = np.random.rand(50, 2) * 100
-radius = 10
-num_bees = 1000
-print(transmitters)
-
-vis = Visualizer(transmitters, radius, 0, "bee")
-
-bee_algo = BeeAlgorithm(transmitters=transmitters,
-                        radius=radius, num_bees=num_bees)
-initial_mask = np.ones(len(transmitters), dtype=bool)
-plot_transmitters(transmitters, initial_mask, radius,
-                  title="Initial Configuration", save_path="starting.png")
-
-num_generations = 30
-for i in range(num_generations):
-    if i % (num_generations // 10) == 0: print(f"{i / num_generations * 100}%")
-    bee_algo.run_iteration(vis)
-
-vis.add_frame(bee_algo.best_population, bee_algo.best_score)
-vis.save_animation()
-
-print("Best:", bee_algo.best_population, "Score:", bee_algo.best_score)

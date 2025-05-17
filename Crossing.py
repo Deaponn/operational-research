@@ -1,6 +1,6 @@
 import numpy as np
 from GeneticAlgorithm import GeneticAlgorithm
-from Visualizer import Visualizer, plot_transmitters
+from Visualizer import Visualizer
 
 class Crossing(GeneticAlgorithm):
 
@@ -74,13 +74,15 @@ class Crossing(GeneticAlgorithm):
             # Evaluation
             scores = np.array([self.calculate_score(member) for member in population])
 
+            best_idx = np.argmax(scores)
+            vis.add_frame(population[best_idx], scores[best_idx])
+
             # Finding best solution
             for i, score in enumerate(scores):
                 if score < best_score:
                     best_score = score
                     best_member = population[i]
                     print(f"New best score {score:.2f}")
-                    vis.add_frame(best_member, best_score)
 
             # Parents selection
             parents = [self.select(population, scores) for _ in range(self.n_population)]
@@ -97,32 +99,3 @@ class Crossing(GeneticAlgorithm):
         
         print(f"Best score {best_score:.2f}")
         return best_member, best_score
-
-
-np.random.seed(123)
-
-n_population = 20 # Population size, should be even number
-n_transmitters = 100 # Number of transmitters
-n_generations = 20 # Number of generations
-n_crossover = 1.0 # A chance for crossover
-n_mutation = 0.05 # A chance for mutation
-
-transmitters = np.random.rand(n_transmitters, 2) * 100
-radius = 10 #np.random.randint(1, 10)
-
-crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
-
-mask = np.ones(n_transmitters, dtype=bool)
-
-plot_transmitters(transmitters, mask, radius, title="Initial problem", save_path="crossing_initial.png")
-
-vis = Visualizer(transmitters, radius, 0, "crossing")
-
-best_member, best_score = crossing.run_iteration(vis)
-
-vis.save_animation()
-
-plot_transmitters(transmitters, best_member, radius, title="Solution", save_path="crossing_solution.png")
-
-
-

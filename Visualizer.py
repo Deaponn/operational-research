@@ -14,7 +14,7 @@ class Visualizer:
         self.fig, self.ax = plt.subplots()
         self.ax.set_aspect('equal', 'box')
 
-        self.writer = HTMLWriter(fps=0.5)
+        self.writer = HTMLWriter(fps=5)
         self.writer.setup(self.fig, f'visualization_{alg_type}.html', dpi=100)
 
         self.fig.suptitle(f"Current/Max score: N/A / {self.max_score}")
@@ -88,10 +88,10 @@ def plot_transmitters(transmitters, bitmask, radius, title="Transmitters", save_
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
 
-    x_vals, y_vals = transmitters[:, 0], transmitters[:, 1]
-    padding = radius + 5
-    ax.set_xlim(x_vals.min() - padding, x_vals.max() + padding)
-    ax.set_ylim(y_vals.min() - padding, y_vals.max() + padding)
+    # x_vals, y_vals = transmitters[:, 0], transmitters[:, 1]
+    # padding = radius + 5
+    # ax.set_xlim(x_vals.min() - padding, x_vals.max() + padding)
+    # ax.set_ylim(y_vals.min() - padding, y_vals.max() + padding)
 
     num_active = len(active_indices)
     ax.text(0.7, 0.8, f"Active: {num_active}", transform=ax.transAxes,

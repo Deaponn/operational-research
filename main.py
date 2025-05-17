@@ -1,40 +1,59 @@
 import numpy as np
-from utils import normalize
+import sys
 from Visualizer import Visualizer
-from GeneticAlgorithm import GeneticAlgorithm
+from Bee import BeeAlgorithm
+from Crossing import Crossing
+from gen_transmitters import read_transmitters
 
 if __name__ == "__main__":
-    np.random.seed(420)
+    if len(sys.argv) < 3:
+        print(len(sys.argv), sys.argv)
+        print("Please provide algorithm type and file with transmitters")
+        print("for example: python ./main.py bee transmitters/my_transmitters.txt")
+        print("to create file with transmitters, use python gen_transmitters.py")
+        sys.exit(1)
 
-    transmitters = np.array([
-        [0, 1], [2, 3], [-1, 3], [-2, 1.5], [3, 1], [0.3, 0.2], [1, 1], [2, 2], [1.5, 3.5], [3, 0.5]
-    ])
-    radius = 2
+    transmitters, radius = read_transmitters(sys.argv[2])
+    vis = Visualizer(transmitters, radius, 0, "bee" if sys.argv[1] == "bee" else "crossing")
 
-    num_generations = 10
-    num_populations = 5
+    if sys.argv[1] == "bee":
+        n_population = 1000
+        user_input = input(f"Provide population size: (default {n_population}) ")
+        n_population = int(user_input) if len(user_input) != 0 else n_population
 
-    normalized_transmitters, normalized_radius = normalize(transmitters, radius)
+        num_generations = 30
+        user_input = input(f"Provide number of generations: (default {num_generations}) ")
+        num_generations = int(user_input) if len(user_input) != 0 else num_generations
 
-    print("Normalized transmitters:\n", normalized_transmitters, f"\nNormalized radius: {normalized_radius}")
+        bee_algo = BeeAlgorithm(transmitters=transmitters,
+                                radius=radius, num_bees=n_population)
+        initial_mask = np.ones(len(transmitters), dtype=bool)
 
-    alg = GeneticAlgorithm(normalized_transmitters, normalized_radius)
-    vis = Visualizer(normalized_transmitters, normalized_radius, alg.get_max_score())
+        for i in range(num_generations):
+            if i % (num_generations // 10) == 0: print(f"{i / num_generations * 100}%")
+            bee_algo.run_iteration(vis)
 
-    vis.add_frame(alg.get_all(), alg.get_max_score())
+        vis.add_frame(bee_algo.best_population, bee_algo.best_score)
+    else:
+        n_population = 50 # Population size, should be even number
+        user_input = input(f"Provide population size: (default {n_population}) ")
+        n_population = int(user_input) if len(user_input) != 0 else n_population
 
-    # use binary mask [True, True, True, ...] to include all transmitters
-    max_score = alg.calculate_score(alg.get_all())
+        n_generations = 100 # Number of generations
+        user_input = input(f"Provide number of generations: (default {n_generations}) ")
+        n_generations = int(user_input) if len(user_input) != 0 else n_generations
 
-    # main loop of optimisation
-    # maybe it should be moved to GenericAlgorithm.py? but access to Visualizer is handy aswell
-    populations = alg.generate_population(num_populations)
-    scores = alg.calculate_scores(populations)
-    max_idx = np.argmax(scores)
-    for _ in range(num_generations):
-        print("Current scores:", scores)
-        vis.add_frame(populations[max_idx], scores[max_idx])
-        populations = alg.breed_population(populations[max_idx], num_populations)
-        scores = alg.calculate_scores(populations)
-        max_idx = np.argmax(scores)
+        n_crossover = 1.0 # A chance for crossover
+        user_input = input(f"Provide chance of crossover: (default {n_crossover}) ")
+        n_crossover = float(user_input) if len(user_input) != 0 else n_crossover
+
+        n_mutation = 0.05 # A chance for mutation
+        user_input = input(f"Provide chance of mutation: (default {n_mutation}) ")
+        n_mutation = float(user_input) if len(user_input) != 0 else n_mutation
+
+        crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
+        mask = np.ones(len(transmitters), dtype=bool)
+        best_member, best_score = crossing.run_iteration(vis)
+        vis.add_frame(best_member, best_score)
+    
     vis.save_animation()

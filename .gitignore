@@ -2,3 +2,5 @@
 visualization_*frames
 *.html
 *.png
+transmitters/*
+!transmitters/default.*
