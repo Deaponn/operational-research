@@ -17,11 +17,11 @@ if __name__ == "__main__":
     vis = Visualizer(transmitters, radius, 0, "bee" if sys.argv[1] == "bee" else "crossing")
 
     if sys.argv[1] == "bee":
-        n_population = 1000
+        n_population = 50
         user_input = input(f"Provide population size: (default {n_population}) ")
         n_population = int(user_input) if len(user_input) != 0 else n_population
 
-        num_generations = 30
+        num_generations = 100
         user_input = input(f"Provide number of generations: (default {num_generations}) ")
         num_generations = int(user_input) if len(user_input) != 0 else num_generations
 
@@ -29,11 +29,11 @@ if __name__ == "__main__":
                                 radius=radius, num_bees=n_population)
         initial_mask = np.ones(len(transmitters), dtype=bool)
 
-        for i in range(num_generations):
-            if i % (num_generations // 10) == 0: print(f"{i / num_generations * 100}%")
-            bee_algo.run_iteration(vis)
+        # for i in range(num_generations):
+            # if i % (num_generations // 10) == 0: print(f"{i / num_generations * 100}%")
+        bee_algo.run_iteration(vis, num_generations)
 
-        vis.add_frame(bee_algo.best_population, bee_algo.best_score)
+        # vis.add_frame(bee_algo.best_population, bee_algo.best_score)
     else:
         n_population = 50 # Population size, should be even number
         user_input = input(f"Provide population size: (default {n_population}) ")

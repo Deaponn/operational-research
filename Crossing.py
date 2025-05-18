@@ -3,99 +3,71 @@ from GeneticAlgorithm import GeneticAlgorithm
 from Visualizer import Visualizer
 
 class Crossing(GeneticAlgorithm):
-
-    def __init__(self, transmitters, radius, n_population, n_generations, n_crossover, n_mutation, c1 =1.0, c2 =1.0):
+    def __init__(self, transmitters, radius, n_population, n_generations, p_crossover, p_mutation, c1=-1.0, c2=5.0, c3=1000.0):
         self.n_population = n_population
         self.n_generations = n_generations
-        self.n_crossover = n_crossover
-        self.n_mutation = n_mutation
-
-        super().__init__(transmitters, radius,c1=c1, c2=c2)
-
-
-    def calculate_area_coverage(self, transmitters, radius):
-        x_min, y_min = np.min(transmitters, axis=0) - radius
-        x_max, y_max = np.max(transmitters, axis=0) + radius
-        return (x_max - x_min) * (y_max - y_min)
-
+        self.p_crossover = p_crossover
+        self.p_mutation = p_mutation
+        self.best_score = -np.inf
+        self.best_generation = None
+        super().__init__(transmitters, radius, c1=c1, c2=c2, c3=c3)
 
     def select(self, population, scores, n_tournament_size=5):
-        # Random parent
-        best_parent_idx = np.random.choice(range(self.n_population), 1)[0]
-        best_score = scores[best_parent_idx]
-
-        # Tournament selection
-        for i in np.random.choice(range(self.n_population), n_tournament_size, replace=False):
-            if scores[i] < best_score:
-                best_parent_idx = i
-                best_score = scores[i]
-        
-        return population[best_parent_idx]
-
+        candidates = np.random.choice(range(self.n_population), n_tournament_size, replace=False)
+        best = candidates[np.argmax(scores[candidates])]
+        return population[best]
 
     def crossover(self, parent1, parent2):
-        child1 = np.copy(parent1)
-        child2 = np.copy(parent2)
-        if np.random.rand() < self.n_crossover:
-            point = np.random.randint(1, len(parent1)-2)
-
+        if np.random.rand() < self.p_crossover:
+            point = np.random.randint(1, len(parent1))
             child1 = np.concatenate((parent1[:point], parent2[point:]))
             child2 = np.concatenate((parent2[:point], parent1[point:]))
-        
+        else:
+            child1 = np.copy(parent1)
+            child2 = np.copy(parent2)
         return [child1, child2]
-    
 
     def mutation(self, child):
-        for i, bit in enumerate(child):
-            if np.random.rand() < self.n_mutation:
-                child[i] = not bit
-
-    
-    def calculate_score(self, bitmask):
-        active_indices = np.where(bitmask)[0]
-        active_transmitters = self.transmitters[active_indices]
-        
-        #print(self.c1 * (len(active_transmitters) / len(self.transmitters)), self.c2 * (self.approximate_coverage_area(active_transmitters) / self.approximate_coverage_area(transmitters)))
-
-        return self.c1 * (len(active_transmitters) / len(self.transmitters)) - self.c2 * (self.approximate_coverage_area(active_transmitters) / self.approximate_coverage_area(self.transmitters))
-    
+        for i in range(len(child)):
+            if np.random.rand() < self.p_mutation:
+                child[i] = not child[i]
 
     def run_iteration(self, vis):
         population = self.generate_population(self.n_population)
-        
-        # Random score
-        random_member = np.random.randint(0, self.n_population)
-        best_score = self.calculate_scores(population)[random_member]
-        best_member = population[random_member]
+        scores = np.array([self.calculate_score(ind) for ind in population])
+        best_idx = np.argmax(scores)
+        self.best_score = scores[best_idx]
+        self.best_generation = population[best_idx].copy()
+        vis.add_frame(self.best_generation, self.best_score)
+        print(f"Initial best score: {self.best_score:.4f}")
 
         for generation in range(self.n_generations):
-            print(f"Running generation #{generation}")
-
-            # Evaluation
-            scores = np.array([self.calculate_score(member) for member in population])
-
+            scores = np.array([self.calculate_score(ind) for ind in population])
             best_idx = np.argmax(scores)
-            vis.add_frame(population[best_idx], scores[best_idx])
+            gen_best_score = scores[best_idx]
+            vis.add_frame(population[best_idx], gen_best_score)
 
-            # Finding best solution
-            for i, score in enumerate(scores):
-                if score < best_score:
-                    best_score = score
-                    best_member = population[i]
-                    print(f"New best score {score:.2f}")
+            if gen_best_score > self.best_score:
+                self.best_score = gen_best_score
+                self.best_generation = population[best_idx].copy()
+                print(f"[Gen {generation}] NEW GLOBAL BEST: {self.best_score:.4f}")
+            else:
+                print(f"[Gen {generation}] Best score in generation: {gen_best_score:.4f}")
 
-            # Parents selection
             parents = [self.select(population, scores) for _ in range(self.n_population)]
-
-            # Creating next generation
             children = []
+
             for i in range(0, self.n_population, 2):
-                for child in self.crossover(parents[i], parents[i+1]):
+                p1 = parents[i]
+                p2 = parents[i+1 if i+1 < self.n_population else 0]
+                offspring = self.crossover(p1, p2)
+                for child in offspring:
                     self.mutation(child)
                     children.append(child)
 
-            # Replacing population
+            children[np.random.randint(len(children))] = self.best_generation.copy()
             population = children
-        
-        print(f"Best score {best_score:.2f}")
-        return best_member, best_score
+
+        print(f"Final best score: {self.best_score:.4f}")
+        print(f"Best generation bitmask: {self.best_generation}")
+        return self.best_generation, self.best_score
