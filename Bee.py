@@ -13,7 +13,9 @@ class BeeAlgorithm(GeneticAlgorithm):
         self.trials = np.zeros(num_bees)
         self.limit = 10
         self.best_score = np.max(self.scores)
+        self.best_score_list = [self.best_score]
         self.best_population = self.population[np.argmax(self.scores)].copy()
+        self.best_population_idx = 0
         print(f"Initial best score: {self.best_score:.4f}")
 
     def local_search(self, solution):
@@ -62,13 +64,15 @@ class BeeAlgorithm(GeneticAlgorithm):
                     self.trials[i] = 0
 
             best_idx = np.argmax(self.scores)
-            vis.add_frame(self.population[best_idx], self.scores[best_idx])
+            self.best_score_list.append(self.scores[best_idx])
+            vis.add_frame(self.population[best_idx], self.scores[best_idx], self.best_score_list)
             print(f"[Iter {gen}] Best score in iteration: {self.scores[best_idx]:.4f}")
 
             if self.scores[best_idx] > self.best_score:
                 self.best_score = self.scores[best_idx]
                 self.best_population = np.array(self.population[best_idx])
+                self.best_population_idx = gen
                 print(f"[Iter {gen}] NEW Global Best Score: {self.best_score:.4f}")
 
         print(f"\nFinal Global Best Score: {self.best_score:.4f}")
-        return self.population[best_idx], self.scores[best_idx]
+        return self.population[best_idx], self.scores[best_idx], self.best_population_idx, self.best_score_list

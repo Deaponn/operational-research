@@ -10,8 +10,14 @@ class Visualizer:
         self.transmitters = transmitters
         self.radius = radius
 
-        self.fig, self.ax = plt.subplots()
-        self.ax.set_aspect('equal', 'box')
+        self.fig, (self.transmitter_ax, self.score_ax) = plt.subplots(1, 2, figsize=(12, 7))
+        self.transmitter_ax.set_aspect('equal', 'box')
+        self.transmitter_ax.set_xticks([])
+        self.transmitter_ax.set_yticks([])
+        self.score_ax.set_box_aspect(1.0)
+        self.score_ax.set_xlabel("Iteration #")
+        self.score_ax.set_ylabel("Score")
+        self.fig.tight_layout()
 
         self.writer = HTMLWriter(fps=5)
         self.writer.setup(self.fig, f'visualization_{alg_type}.html', dpi=100)
@@ -23,42 +29,49 @@ class Visualizer:
         self.writer.grab_frame()
         self._erase([dots, circles, lines])
 
-    def add_frame(self, active_transmitters, score, last_frame=False):
-        self.fig.suptitle(f"Current score: {score}")
+    def add_frame(self, active_transmitters, score, best_score_list, last_frame=False, best_iteration_idx=None):
+        self.fig.suptitle(f"{"Current" if not last_frame else "Best"} score: {score:.4f}{f", iteration #{best_iteration_idx}" if best_iteration_idx is not None else ""}")
+        
+        scores = self._draw_score(best_score_list)
+        
+        inactive_dots, inactive_circles = self._draw_transmitters(
+            self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
+        active_dots, active_circles = self._draw_transmitters(
+            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
+        lines = self._draw_connections(active_transmitters)
+        self.writer.grab_frame()
+        self._erase([active_dots, active_circles, inactive_dots, inactive_circles, lines])
         if last_frame:
             active_dots, active_circles = self._draw_transmitters(
                 self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
-            lines = self._draw_connections(active_transmitters)
+            lines = self._draw_connections(active_transmitters, active_only=True)
             self.writer.grab_frame()
             self._erase([active_dots, active_circles, lines])
-        else:
-            inactive_dots, inactive_circles = self._draw_transmitters(
-                self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
-            active_dots, active_circles = self._draw_transmitters(
-                self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
-            lines = self._draw_connections(active_transmitters)
-            self.writer.grab_frame()
-            self._erase([active_dots, active_circles, inactive_dots, inactive_circles, lines])
+
+        self._erase([scores])
 
     def save_animation(self):
         self.writer.finish()
 
+    def _draw_score(self, scores):
+        return self.score_ax.plot(scores, "b")
+
     def _draw_transmitters(self, xs, ys, color):
-        dots = self.ax.plot(xs, ys, "o", color=color, markersize=4)
+        dots = self.transmitter_ax.plot(xs, ys, "o", color=color, markersize=4)
 
         circles = []
         for x, y in zip(xs, ys):
             circle = patches.Circle(
                 (x, y), self.radius, color=color, alpha=0.4
             )
-            self.ax.add_patch(circle)
+            self.transmitter_ax.add_patch(circle)
             circles.append(circle)
 
         return dots, circles
 
-    def _draw_connections(self, active_transmitters=None):
+    def _draw_connections(self, active_transmitters=None, active_only=False):
         active_color = "blue"
-        inactive_color = "red"
+        inactive_color = "red" if not active_only else "none"
         if active_transmitters is None:
             active_transmitters = [True] * len(self.transmitters)
             active_color = "gray"
@@ -72,7 +85,7 @@ class Visualizer:
                         xi, yi = self.transmitters[i]
                         xj, yj = self.transmitters[j]
                         color = active_color if active_transmitters[i] and active_transmitters[j] else inactive_color
-                        lines.append(self.ax.plot([xi, xj], [yi, yj], color=color,
+                        lines.append(self.transmitter_ax.plot([xi, xj], [yi, yj], color=color,
                                 linewidth=1, alpha=0.4)[0])
         return lines
 

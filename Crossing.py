@@ -10,6 +10,8 @@ class Crossing(GeneticAlgorithm):
         self.p_mutation = p_mutation
         self.best_score = -np.inf
         self.best_generation = None
+        self.best_generation_idx = 0
+        self.best_score_list = []
         super().__init__(transmitters, radius, c1=c1, c2=c2, c3=c3)
 
     def select(self, population, scores, n_tournament_size=5):
@@ -37,19 +39,22 @@ class Crossing(GeneticAlgorithm):
         scores = np.array([self.calculate_score(ind) for ind in population])
         best_idx = np.argmax(scores)
         self.best_score = scores[best_idx]
+        self.best_score_list.append(self.best_score)
         self.best_generation = population[best_idx].copy()
-        vis.add_frame(self.best_generation, self.best_score)
+        vis.add_frame(self.best_generation, self.best_score, self.best_score_list)
         print(f"Initial best score: {self.best_score:.4f}")
 
         for generation in range(self.n_generations):
             scores = np.array([self.calculate_score(ind) for ind in population])
             best_idx = np.argmax(scores)
             gen_best_score = scores[best_idx]
-            vis.add_frame(population[best_idx], gen_best_score)
+            self.best_score_list.append(gen_best_score)
+            vis.add_frame(population[best_idx], gen_best_score, self.best_score_list)
 
             if gen_best_score > self.best_score:
                 self.best_score = gen_best_score
                 self.best_generation = population[best_idx].copy()
+                self.best_generation_idx = generation
                 print(f"[Gen {generation}] NEW GLOBAL BEST: {self.best_score:.4f}")
             else:
                 print(f"[Gen {generation}] Best score in generation: {gen_best_score:.4f}")
@@ -70,4 +75,4 @@ class Crossing(GeneticAlgorithm):
 
         print(f"Final best score: {self.best_score:.4f}")
         print(f"Best generation bitmask: {self.best_generation}")
-        return self.best_generation, self.best_score
+        return self.best_generation, self.best_score, self.best_generation_idx, self.best_score_list
