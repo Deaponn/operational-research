@@ -71,3 +71,4 @@ class BeeAlgorithm(GeneticAlgorithm):
                 print(f"[Iter {gen}] NEW Global Best Score: {self.best_score:.4f}")
 
         print(f"\nFinal Global Best Score: {self.best_score:.4f}")
+        return self.population[best_idx], self.scores[best_idx]

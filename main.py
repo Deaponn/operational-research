@@ -14,7 +14,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     transmitters, radius = read_transmitters(sys.argv[2])
-    vis = Visualizer(transmitters, radius, 0, "bee" if sys.argv[1] == "bee" else "crossing")
+    vis = Visualizer(transmitters, radius, "bee" if sys.argv[1] == "bee" else "crossing")
+    best_member, best_score = None, None
 
     if sys.argv[1] == "bee":
         n_population = 50
@@ -27,13 +28,8 @@ if __name__ == "__main__":
 
         bee_algo = BeeAlgorithm(transmitters=transmitters,
                                 radius=radius, num_bees=n_population)
-        initial_mask = np.ones(len(transmitters), dtype=bool)
 
-        # for i in range(num_generations):
-            # if i % (num_generations // 10) == 0: print(f"{i / num_generations * 100}%")
-        bee_algo.run_iteration(vis, num_generations)
-
-        # vis.add_frame(bee_algo.best_population, bee_algo.best_score)
+        best_member, best_score = bee_algo.run_iteration(vis, num_generations)
     else:
         n_population = 50 # Population size, should be even number
         user_input = input(f"Provide population size: (default {n_population}) ")
@@ -54,6 +50,6 @@ if __name__ == "__main__":
         crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
         mask = np.ones(len(transmitters), dtype=bool)
         best_member, best_score = crossing.run_iteration(vis)
-        vis.add_frame(best_member, best_score)
     
+    vis.add_frame(best_member, best_score, last_frame=True)
     vis.save_animation()

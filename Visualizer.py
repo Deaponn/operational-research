@@ -6,10 +6,9 @@ from matplotlib.patches import Circle
 
 
 class Visualizer:
-    def __init__(self, transmitters, radius, max_score, alg_type):
+    def __init__(self, transmitters, radius, alg_type):
         self.transmitters = transmitters
         self.radius = radius
-        self.max_score = max_score
 
         self.fig, self.ax = plt.subplots()
         self.ax.set_aspect('equal', 'box')
@@ -17,22 +16,29 @@ class Visualizer:
         self.writer = HTMLWriter(fps=5)
         self.writer.setup(self.fig, f'visualization_{alg_type}.html', dpi=100)
 
-        self.fig.suptitle(f"Current/Max score: N/A / {self.max_score}")
+        self.fig.suptitle(f"Current score: N/A")
         dots, circles = self._draw_transmitters(
             self.transmitters[:, 0], self.transmitters[:, 1], "grey")
         lines = self._draw_connections()
         self.writer.grab_frame()
         self._erase([dots, circles, lines])
 
-    def add_frame(self, active_transmitters, score):
-        self.fig.suptitle(f"Current/Max score: {score} / {self.max_score}")
-        inactive_dots, inactive_circles = self._draw_transmitters(
-            self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
-        active_dots, active_circles = self._draw_transmitters(
-            self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
-        lines = self._draw_connections(active_transmitters)
-        self.writer.grab_frame()
-        self._erase([active_dots, active_circles, inactive_dots, inactive_circles, lines])
+    def add_frame(self, active_transmitters, score, last_frame=False):
+        self.fig.suptitle(f"Current score: {score}")
+        if last_frame:
+            active_dots, active_circles = self._draw_transmitters(
+                self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
+            lines = self._draw_connections(active_transmitters)
+            self.writer.grab_frame()
+            self._erase([active_dots, active_circles, lines])
+        else:
+            inactive_dots, inactive_circles = self._draw_transmitters(
+                self.transmitters[:, 0][~active_transmitters], self.transmitters[:, 1][~active_transmitters], "pink")
+            active_dots, active_circles = self._draw_transmitters(
+                self.transmitters[:, 0][active_transmitters], self.transmitters[:, 1][active_transmitters], "green")
+            lines = self._draw_connections(active_transmitters)
+            self.writer.grab_frame()
+            self._erase([active_dots, active_circles, inactive_dots, inactive_circles, lines])
 
     def save_animation(self):
         self.writer.finish()
