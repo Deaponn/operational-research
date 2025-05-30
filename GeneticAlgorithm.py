@@ -8,6 +8,7 @@ class GeneticAlgorithm:
         self.c1 = c1
         self.c2 = c2
         self.c3 = c3
+        self.score_calculations = 0
         self.grid_points = None
         self.resolution = resolution
         self.max_score = self.calculate_score(self.get_all())
@@ -16,6 +17,7 @@ class GeneticAlgorithm:
         return np.random.rand(num_members, len(self.transmitters)) < 0.5
 
     def calculate_score(self, bitmask):
+        self.score_calculations += 1
         if self.grid_points is None: self._generate_grid_points()
         active_indices = np.where(bitmask)[0]
         active_transmitters = self.transmitters[active_indices]

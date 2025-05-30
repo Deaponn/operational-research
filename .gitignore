@@ -1,6 +1,7 @@
 **/__pycache__
-visualization_*frames
+*frames/
 *.html
 *.png
 transmitters/*
 !transmitters/default.*
+benchmark/

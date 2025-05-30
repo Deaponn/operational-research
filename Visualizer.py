@@ -14,7 +14,7 @@ class MockVisualizer:
         pass
 
 class Visualizer:
-    def __init__(self, transmitters, radius, alg_type):
+    def __init__(self, transmitters, radius, file_path):
         self.transmitters = transmitters
         self.radius = radius
 
@@ -28,7 +28,7 @@ class Visualizer:
         self.fig.tight_layout()
 
         self.writer = HTMLWriter(fps=5)
-        self.writer.setup(self.fig, f'visualization_{alg_type}.html', dpi=100)
+        self.writer.setup(self.fig, f'{file_path}.html', dpi=100)
 
         self.fig.suptitle(f"Current score: N/A")
         dots, circles = self._draw_transmitters(
