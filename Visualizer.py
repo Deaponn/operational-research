@@ -5,6 +5,14 @@ from matplotlib.animation import HTMLWriter
 from matplotlib.patches import Circle
 
 
+class MockVisualizer:
+    def __init__(self):
+        pass
+    def add_frame(self, active_transmitters, score, best_score_list, last_frame=False, best_iteration_idx=None):
+        pass
+    def save_animation(self):
+        pass
+
 class Visualizer:
     def __init__(self, transmitters, radius, alg_type):
         self.transmitters = transmitters
@@ -125,11 +133,6 @@ def plot_transmitters(transmitters, bitmask, radius, title="Transmitters", save_
     ax.set_title(title)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
-
-    # x_vals, y_vals = transmitters[:, 0], transmitters[:, 1]
-    # padding = radius + 5
-    # ax.set_xlim(x_vals.min() - padding, x_vals.max() + padding)
-    # ax.set_ylim(y_vals.min() - padding, y_vals.max() + padding)
 
     num_active = len(active_indices)
     ax.text(0.7, 0.8, f"Active: {num_active}", transform=ax.transAxes,

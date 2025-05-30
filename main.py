@@ -5,6 +5,19 @@ from Bee import BeeAlgorithm
 from Crossing import Crossing
 from gen_transmitters import read_transmitters
 
+
+def run_bee(transmitters, radius, n_population, num_generations, vis):
+    bee_algo = BeeAlgorithm(transmitters=transmitters, radius=radius, num_bees=n_population)
+    bee_algo.run_iteration(vis, num_generations)
+    return bee_algo
+
+
+def run_crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation, vis):
+    crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
+    crossing.run_iteration(vis)
+    return crossing
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print(len(sys.argv), sys.argv)
@@ -26,10 +39,12 @@ if __name__ == "__main__":
         user_input = input(f"Provide number of generations: (default {num_generations}) ")
         num_generations = int(user_input) if len(user_input) != 0 else num_generations
 
-        bee_algo = BeeAlgorithm(transmitters=transmitters,
-                                radius=radius, num_bees=n_population)
-
-        best_member, best_score, best_generation, best_score_list = bee_algo.run_iteration(vis, num_generations)
+        best_member, best_score, best_generation, best_score_list = run_bee(
+            transmitters,
+            radius,
+            n_population,
+            num_generations,
+            vis).get_results()
     else:
         n_population = 50 # Population size, should be even number
         user_input = input(f"Provide population size: (default {n_population}) ")
@@ -47,9 +62,14 @@ if __name__ == "__main__":
         user_input = input(f"Provide chance of mutation: (default {n_mutation}) ")
         n_mutation = float(user_input) if len(user_input) != 0 else n_mutation
 
-        crossing = Crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation)
-        mask = np.ones(len(transmitters), dtype=bool)
-        best_member, best_score, best_generation, best_score_list = crossing.run_iteration(vis)
+        best_member, best_score, best_generation, best_score_list = run_crossing(
+            transmitters,
+            radius,
+            n_population,
+            n_generations,
+            n_crossover,
+            n_mutation,
+            vis).get_results()
     
     vis.add_frame(best_member, best_score, best_score_list, last_frame=True, best_iteration_idx=best_generation)
     vis.save_animation()

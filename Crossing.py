@@ -75,4 +75,6 @@ class Crossing(GeneticAlgorithm):
 
         print(f"Final best score: {self.best_score:.4f}")
         print(f"Best generation bitmask: {self.best_generation}")
+
+    def get_results(self):
         return self.best_generation, self.best_score, self.best_generation_idx, self.best_score_list
