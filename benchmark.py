@@ -5,6 +5,7 @@ from main import run_bee, run_crossing
 from Visualizer import MockVisualizer, Visualizer
 from gen_transmitters import read_transmitters
 import numpy as np
+import concurrent.futures
 
 
 def calculate_scores_difference(scores):
@@ -18,16 +19,60 @@ def calculate_scores_difference(scores):
     return f"{bigger_count},{bigger_percentage},{smaller_count},{smaller_percentage}"
 
 
+def benchmark_bee_worker(transmitters_data, radius_data, num_bees_val, num_generations_val):
+    np.random.seed(os.getpid())
+
+    current_vis = MockVisualizer()
+
+    start_time = timer()
+    bees = run_bee(transmitters_data, radius_data, num_bees_val, num_generations_val, current_vis)
+    elapsed_time = timer() - start_time
+
+    score_diff_str = calculate_scores_difference(bees.best_score_list)
+
+    return (
+        f"{num_bees_val},"
+        f"{bees.iterations_ran},"
+        f"{bees.best_score},"
+        f"{bees.score_calculations},"
+        f"{score_diff_str},"
+        f"{elapsed_time}"
+    )
+
+
+def benchmark_crossing_worker(transmitters_data, radius_data, n_population, n_generations, n_crossover, n_mutation):
+    np.random.seed(os.getpid())
+
+    current_vis = MockVisualizer()
+
+    start_time = timer()
+    crossover = run_crossing(transmitters_data, radius_data, n_population, n_generations, n_crossover, n_mutation, current_vis)
+    elapsed_time = timer() - start_time
+
+    score_diff_str = calculate_scores_difference(crossover.best_score_list)
+
+    return (
+        f"{n_population},"
+        f"{n_crossover},"
+        f"{n_mutation},"
+        f"{crossover.iterations_ran},"
+        f"{crossover.best_score},"
+        f"{crossover.score_calculations},"
+        f"{score_diff_str},"
+        f"{elapsed_time}"
+    )
+
+
 if __name__ == "__main__":
-    transmitters_filenames = ["transmitters/small.txt", "transmitters/default.txt"]
+    transmitters_names = ["small", "default", "big"]
 
-    repetitions = 11
+    repetitions = 16
 
-    # bee algo, total 6 * 11 combinations
+    # bee algo, total 6 * 16 combinations
     num_bees_list = [20, 35, 50, 65, 80, 100]
     num_generations_list = [150] # with early stopping this is essentially just the max_iterations setting 
 
-    # crossing algo, total 72 * 11 combinations
+    # crossing algo, total 72 * 16 combinations
     n_population_list = [20, 35, 50, 65, 80, 100]
     n_generations_list = [150] # with early stopping this is essentially just the max_iterations setting 
     n_crossover_list = [0.7, 0.9, 1.0]
@@ -36,64 +81,102 @@ if __name__ == "__main__":
     if not os.path.exists("benchmark"):
         os.makedirs("benchmark")
 
-    for transmitters_filename in transmitters_filenames:
-        transmitters, radius = read_transmitters(transmitters_filename)
-        with open(f"benchmark/bee.csv", "w") as f:
+    for transmitters_name in transmitters_names:
+        transmitters, radius = read_transmitters(f"transmitters/{transmitters_name}.txt")
+        with open(f"benchmark/bee_{transmitters_name}.csv", "w") as f:
             f.write("num_bees,num_generations,best_score,score_func_calls,num_improvements,percent_improvements,num_declines,percent_declines,time\n")
             for num_bees in num_bees_list:
                 for num_generations in num_generations_list:
-                    filename = f"benchmark/bee_{num_bees}bees"
-                    for rep in range(repetitions):
-                        vis = MockVisualizer() # faster testing, if you want to visualize, you need to run main.py explicitly
+                    filename = f"benchmark/bee_{transmitters_name}_{num_bees}bees"
+                    # visualize once, but dont count stats to not skew the results
+                    vis = Visualizer(transmitters, radius, filename)
+                    best_member, best_score, best_generation, best_score_list = run_bee(
+                        transmitters,
+                        radius,
+                        num_bees,
+                        num_generations,
+                        vis).get_results()
+                    vis.add_frame(best_member, best_score, best_score_list, last_frame=True, best_iteration_idx=best_generation)
+                    vis.save_animation()
 
-                        if rep == 0: # visualize once, but dont count stats to not skew the results
-                            vis = Visualizer(transmitters, radius, filename)
-                            best_member, best_score, best_generation, best_score_list = run_bee(
+                    # run in parallel
+                    print(f"Starting {repetitions} parallel benchmark runs for {num_bees} bees...")
+                    benchmark_results_lines = []
+
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=16) as executor:
+                        futures = []
+                        for i in range(repetitions):
+                            future = executor.submit(
+                                benchmark_bee_worker,
                                 transmitters,
                                 radius,
                                 num_bees,
-                                num_generations,
-                                vis).get_results()
-                            vis.add_frame(best_member, best_score, best_score_list, last_frame=True, best_iteration_idx=best_generation)
-                            vis.save_animation()
-                            continue
+                                num_generations
+                            )
+                            futures.append(future)
 
-                        start = timer()
-                        bees = run_bee(transmitters, radius, num_bees, num_generations, vis)
-                        elapsed = timer() - start
+                        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                            try:
+                                result_line = future.result()
+                                benchmark_results_lines.append(result_line)
+                                print(f"Completed benchmark run {i+1}/{repetitions} for {num_bees} bees, {num_generations} generations.")
+                            except Exception as e:
+                                print(f"Benchmark run {i+1}/{repetitions} for {num_bees} bees, {num_generations} generations failed: {e}")
 
-                        score_diffs = calculate_scores_difference(bees.best_score_list)
+                    for line_data in benchmark_results_lines:
+                        f.write(line_data + "\n")
+                    if benchmark_results_lines:
+                        f.flush()
+                    print(f"Finished all benchmark runs for {num_bees} bees, {num_generations} generations.\n\n\n")
 
-                        f.write(f"{num_bees},{bees.iterations_ran},{bees.best_score},{bees.score_calculations},{score_diffs},{elapsed}\n")
-        
-        with open(f"benchmark/crossing.csv", "w") as f:
-            f.write("n_population,n_generations,n_crossover,n_mutation,best_score,score_func_calls,num_improvements,percent_improvements,num_declines,percent_declines,time\n")
+        with open(f"benchmark/crossing_{transmitters_name}.csv", "w") as f:
+            f.write("n_population,n_crossover,n_mutation,n_generations,best_score,score_func_calls,num_improvements,percent_improvements,num_declines,percent_declines,time\n")
             for n_population in n_population_list:
                 for n_generations in n_generations_list:
                     for n_crossover in n_crossover_list:
                         for n_mutation in n_mutation_list:
-                            filename = f"benchmark/crossing_{n_population}pop_{n_generations}gens_{n_crossover}cross_{n_mutation}mut"
-                            for rep in range(repetitions):
-                                vis = MockVisualizer() # faster testing, if you want to visualize, you need to run main.py explicitly
+                            filename = f"benchmark/crossing_{transmitters_name}_{n_population}pop_{n_generations}gens_{n_crossover}cross_{n_mutation}mut"
+                            # visualize once, but dont count stats to not skew the results
+                            vis = Visualizer(transmitters, radius, filename)
+                            best_member, best_score, best_generation, best_score_list = run_crossing(
+                                transmitters,
+                                radius,
+                                n_population,
+                                n_generations,
+                                n_crossover,
+                                n_mutation,
+                                vis).get_results()
+                            vis.add_frame(best_member, best_score, best_score_list, last_frame=True, best_iteration_idx=best_generation)
+                            vis.save_animation()
 
-                                if rep == 0: # visualize once, but dont count stats to not skew the results
-                                    vis = Visualizer(transmitters, radius, filename)
-                                    best_member, best_score, best_generation, best_score_list = run_crossing(
+                            # run in parallel
+                            print(f"Starting {repetitions} parallel benchmark runs for crossing {n_population} specimen...")
+                            benchmark_results_lines = []
+
+                            with concurrent.futures.ProcessPoolExecutor(max_workers=16) as executor:
+                                futures = []
+                                for i in range(repetitions):
+                                    future = executor.submit(
+                                        benchmark_crossing_worker,
                                         transmitters,
                                         radius,
                                         n_population,
                                         n_generations,
                                         n_crossover,
-                                        n_mutation,
-                                        vis).get_results()
-                                    vis.add_frame(best_member, best_score, best_score_list, last_frame=True, best_iteration_idx=best_generation)
-                                    vis.save_animation()
-                                    continue
+                                        n_mutation
+                                    )
+                                    futures.append(future)
 
-                                start = timer()
-                                crossover = run_crossing(transmitters, radius, n_population, n_generations, n_crossover, n_mutation, vis)
-                                elapsed = timer() - start
+                                for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                                    try:
+                                        result_line = future.result()
+                                        benchmark_results_lines.append(result_line)
+                                        print(f"Completed benchmark run {i+1}/{repetitions} for crossing {n_population} specimen, {num_generations} generations.")
+                                    except Exception as e:
+                                        print(f"Benchmark run {i+1}/{repetitions} for crossing {n_population} specimen, {num_generations} generations failed: {e}")
 
-                                score_diffs = calculate_scores_difference(crossover.best_score_list)
-
-                                f.write(f"{n_population},{crossover.iterations_ran},{n_crossover},{n_mutation},{crossover.best_score},{crossover.score_calculations},{score_diffs},{elapsed}\n")
+                            for line_data in benchmark_results_lines:
+                                f.write(line_data + "\n")
+                            if benchmark_results_lines:
+                                f.flush()
+                            print(f"Finished all benchmark runs for crossing {n_population} specimen, {num_generations} generations.\n\n\n")
