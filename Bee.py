@@ -3,6 +3,9 @@ import numpy as np
 from Visualizer import Visualizer
 
 
+STAGNATION_THRESHOLD = 10
+
+
 class BeeAlgorithm(GeneticAlgorithm):
 
     def __init__(self, transmitters, radius, num_bees):
@@ -16,6 +19,9 @@ class BeeAlgorithm(GeneticAlgorithm):
         self.best_score_list = [self.best_score]
         self.best_population = self.population[np.argmax(self.scores)].copy()
         self.best_population_idx = 0
+        self.iterations_since_no_improvement = 0
+        self.last_best_score = 0
+        self.iterations_ran = 0
         print(f"Initial best score: {self.best_score:.4f}")
 
     def local_search(self, solution):
@@ -66,15 +72,29 @@ class BeeAlgorithm(GeneticAlgorithm):
             best_idx = np.argmax(self.scores)
             self.best_score_list.append(self.scores[best_idx])
             vis.add_frame(self.population[best_idx], self.scores[best_idx], self.best_score_list)
-            print(f"[Iter {gen}] Best score in iteration: {self.scores[best_idx]:.4f}")
+            # print(f"[Iter {gen}] Best score in iteration: {self.scores[best_idx]:.4f}")
 
             if self.scores[best_idx] > self.best_score:
+                self.last_best_score = self.best_score
                 self.best_score = self.scores[best_idx]
                 self.best_population = np.array(self.population[best_idx])
                 self.best_population_idx = gen
-                print(f"[Iter {gen}] NEW Global Best Score: {self.best_score:.4f}")
+                # print(f"[Iter {gen}] NEW Global Best Score: {self.best_score:.4f}")
 
-        print(f"\nFinal Global Best Score: {self.best_score:.4f}")
+            if self.last_best_score == self.best_score:
+                self.iterations_since_no_improvement += 1
+            else:
+                self.last_best_score = self.best_score
+                self.iterations_since_no_improvement = 0
+
+            if self.iterations_since_no_improvement > STAGNATION_THRESHOLD:
+                self.iterations_ran = gen
+                print(f"No improvement for {STAGNATION_THRESHOLD} generations detected. Stopping early.")
+                print(f"Final Global Best Score: {self.best_score:.4f}\n")
+                return
+
+        self.iterations_ran = num_generations
+        print(f"Final Global Best Score: {self.best_score:.4f}\n")
 
     def get_results(self):
         return self.best_population, self.best_score, self.best_population_idx, self.best_score_list

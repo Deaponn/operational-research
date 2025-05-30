@@ -21,17 +21,15 @@ def calculate_scores_difference(scores):
 if __name__ == "__main__":
     transmitters_filenames = ["transmitters/small.txt", "transmitters/default.txt"]
 
-    repetitions = 3
+    repetitions = 11
 
-    # bee algo, total 30 combinations
-    num_bees_list = [20, 35]
-    num_generations_list = [25, 50]
-    # num_bees_list = [20, 35, 50, 65, 80, 100]
-    # num_generations_list = [25, 50, 75, 100, 150]
+    # bee algo, total 6 * 11 combinations
+    num_bees_list = [20, 35, 50, 65, 80, 100]
+    num_generations_list = [150] # with early stopping this is essentially just the max_iterations setting 
 
-    # crossing algo, total 360 combinations
+    # crossing algo, total 72 * 11 combinations
     n_population_list = [20, 35, 50, 65, 80, 100]
-    n_generations_list = [25, 50, 75, 100, 150]
+    n_generations_list = [150] # with early stopping this is essentially just the max_iterations setting 
     n_crossover_list = [0.7, 0.9, 1.0]
     n_mutation_list = [0.01, 0.05, 0.1, 0.2]
 
@@ -44,7 +42,7 @@ if __name__ == "__main__":
             f.write("num_bees,num_generations,best_score,score_func_calls,num_improvements,percent_improvements,num_declines,percent_declines,time\n")
             for num_bees in num_bees_list:
                 for num_generations in num_generations_list:
-                    filename = f"benchmark/bee_{num_bees}bees_{num_generations}gens"
+                    filename = f"benchmark/bee_{num_bees}bees"
                     for rep in range(repetitions):
                         vis = MockVisualizer() # faster testing, if you want to visualize, you need to run main.py explicitly
 
@@ -66,7 +64,7 @@ if __name__ == "__main__":
 
                         score_diffs = calculate_scores_difference(bees.best_score_list)
 
-                        f.write(f"{num_bees},{num_generations},{bees.best_score},{bees.score_calculations},{score_diffs},{elapsed}\n")
+                        f.write(f"{num_bees},{bees.iterations_ran},{bees.best_score},{bees.score_calculations},{score_diffs},{elapsed}\n")
         
         with open(f"benchmark/crossing.csv", "w") as f:
             f.write("n_population,n_generations,n_crossover,n_mutation,best_score,score_func_calls,num_improvements,percent_improvements,num_declines,percent_declines,time\n")
@@ -98,4 +96,4 @@ if __name__ == "__main__":
 
                                 score_diffs = calculate_scores_difference(crossover.best_score_list)
 
-                                f.write(f"{n_population},{n_generations},{n_crossover},{n_mutation},{crossover.best_score},{crossover.score_calculations},{score_diffs},{elapsed}\n")
+                                f.write(f"{n_population},{crossover.iterations_ran},{n_crossover},{n_mutation},{crossover.best_score},{crossover.score_calculations},{score_diffs},{elapsed}\n")
